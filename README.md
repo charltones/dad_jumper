@@ -1,6 +1,6 @@
 # dad_jumper
 
-![In game screenshot](screenshot.jpg?raw=true "Screenshot")
+![In game screenshot](screenshot.png?raw=true "Screenshot")
 
 Beginnings of a simple platform game in pygame zero. Use left and right arrow to move with up arrow to jump.
 
