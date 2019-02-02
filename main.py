@@ -12,9 +12,9 @@ STANDPOS = 5
 BUMPPOS = 8
 
 def make_ground(x, y, width):
-    ''' 
+    '''
         return a list of Actors of type ground starting at (x,y) and being
-        at least width wide 
+        at least width wide
     '''
     ground = []
     for i in range(int(width / images.ground.get_width())):
@@ -60,6 +60,13 @@ def collide(rect1, dx, dy, rect2):
     else:
         return None
 
+editor_mode = False
+dragging = False
+mousepos = None
+selected_object = None
+new_ground = False
+delete = False
+
 p1 = Actor('p1_front')
 p1.pos = 100, 56
 p1.vy = 0
@@ -77,6 +84,26 @@ grounds += make_ground(400, 400, 400)
 grounds += make_ground(25, 250, 250)
 grounds += make_ground(450, 150, 200)
 
+def on_mouse_down(pos):
+    global dragging, mousepos
+
+    if editor_mode and not dragging:
+        # work out what we've clicked on, and select it
+        mousepos = pos
+        dragging = True
+
+def on_mouse_up():
+    global dragging, selected_object
+
+    if editor_mode and dragging:
+        dragging = False
+        selected_object = False
+
+def on_mouse_move(pos, rel, buttons):
+    global mousepos
+
+    mousepos = pos
+
 def on_key_down(key):
     if key == keys.UP and p1.on_land:
         p1.vy = JUMPSPEED
@@ -88,22 +115,32 @@ def on_key_down(key):
         p1.vx = P1WALK
 
 def on_key_up(key):
-    if key == keys.LEFT:
-        p1.keyleft = False
-        # Allow for rolling from one key to next
-        if not p1.keyright:
-            p1.vx = 0
-    if key == keys.RIGHT:
-        p1.keyright = False
-        # Allow for rolling from one key to next
-        if not p1.keyleft:
-            p1.vx = 0
+    global editor_mode, new_ground, delete
+
+    if key == keys.E:
+        editor_mode = not editor_mode
+    if editor_mode:
+        if key == keys.D:
+            delete = True
+        if key == keys.G:
+            new_ground = True
+    else:
+        if key == keys.LEFT:
+            p1.keyleft = False
+            # Allow for rolling from one key to next
+            if not p1.keyright:
+                p1.vx = 0
+        if key == keys.RIGHT:
+            p1.keyright = False
+            # Allow for rolling from one key to next
+            if not p1.keyleft:
+                p1.vx = 0
 
 def update_player():
     p1.on_land = False
     # calculate how far we will move left or right
     dx = p1.vx
-    # Calculate how far we will move up or down, 
+    # Calculate how far we will move up or down,
     # if we're moving at speed vy under influence of gravity
     uy = p1.vy
     p1.vy += GRAVITY
@@ -128,7 +165,7 @@ def update_player():
                 p1.top = g.bottom+1
                 p1.vy = BUMPSPEED
                 dy = 0
-            elif result[0]=='leftof':    
+            elif result[0]=='leftof':
                 print("sideways block hit")
                 # if we're walking sideways and hit a block then stop
                 p1.vx = 0
@@ -171,14 +208,45 @@ def update_player():
         if p1.walkindex > len(p1walk)-1:
             p1.walkindex = 0
 
+def edit_scene():
+    global dragging, selected_object, delete, new_ground
+
+    if dragging:
+        if not selected_object:
+            if p1.collidepoint(mousepos):
+                selected_object = p1
+            else:
+                for g in grounds:
+                    if g.collidepoint(mousepos):
+                        selected_object = g
+                        break
+
+        if selected_object:
+            selected_object.center = mousepos
+    else:
+        if delete:
+            delete = False
+            for g in grounds:
+                if g.collidepoint(mousepos):
+                    grounds.remove(g)
+                    break
+        if new_ground:
+            new_ground = False
+            grounds.append(Actor('ground',
+                          center=mousepos))
 def update():
-    update_player()
+    if not editor_mode:
+        update_player()
+    else:
+        edit_scene()
 
 def draw():
     screen.clear()
     p1.draw()
     for g in grounds:
         g.draw()
+    if editor_mode:
+        screen.draw.text("Edit", (10, 10))
 
 pgzrun.go()
 
